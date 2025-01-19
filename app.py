@@ -47,6 +47,26 @@ def generate_poliharmonic(frequencies, duration, step):
     signal = sum(np.sin(2 * np.pi * f * t) for f in frequencies)
     return t, signal
 
+def generate_unipolar_pulses(signal_duration, pulse_duration, step):
+    t = np.arange(0.0, signal_duration, step)
+    signal = np.zeros_like(t)
+    for pulse_num in range(int(signal_duration / pulse_duration)):
+        start = int(pulse_num * pulse_duration / step)
+        end = int(start + pulse_duration / 2 / step)
+        signal[start:end] = 1
+    return t, signal
+
+def generate_bipolar_pulses(signal_duration, pulse_duration, step):
+    t = np.arange(0.0, signal_duration, step)
+    signal = np.empty_like(t)
+    for pulse_num in range(int(signal_duration / pulse_duration)):
+        start = int(pulse_num * pulse_duration / step)
+        end_pulse = int(start + pulse_duration / 2 / step)
+        end = int(start + pulse_duration / step)+1
+        signal[start:end_pulse] = 1
+        signal[end_pulse:end] = -1
+    return t, signal
+
 # основная часть 
 if 'button_1' not in st.session_state:
     st.session_state.button_1 = False
@@ -104,6 +124,24 @@ if signal_type == 'Периодический':
         except Exception as e:
             st.warning("Ошибка ввода параметров")
             frequencies = [0]
+    elif signal_kind == 'Однополярные импульсы' or signal_kind == 'Разнополярные импульсы':
+        pulses_count = st.number_input('Количество импульсов в последовательности 3 ≤ KG ≤ 7', min_value=3, max_value=7,
+                                       value=3, step=1, format="%d")
+        pulse_duration = st.number_input('Длительность импульса 0,628 ≤ T ≤ 6,28 (с)', min_value=0.628, max_value=6.28,
+                                         value=0.628, step=0.001, format="%0.3f")
+        signal_interval = st.selectbox('Интервал задания сигнала (с)', ('KG * T', '5 * KG * T'))
+        step = st.number_input('Шаг дискретизации 0,001 ≤ Δt ≤ 2,0 (c)', min_value=0.001, max_value=2.0, value=0.030,
+                               step=0.001, format="%0.3f")
+
+        signal_duration = pulse_duration * pulses_count;
+        if signal_interval == '5 * KG * T': signal_duration *= 5
+        if signal_kind == 'Однополярные импульсы':
+            t, signal = generate_unipolar_pulses(signal_duration, pulse_duration, step)
+        else:
+            t, signal = generate_bipolar_pulses(signal_duration, pulse_duration, step)
+        y_tick = 0.2;
+        x_tick = round(signal_duration / 12, 1)
+        points = math.floor(signal_duration / step) + 1
 
 elif signal_type == 'Апериодический':
     signal_kind = st.selectbox('Вид сигнала', ('Затухающая синусоида'), on_change=button_1_off)
@@ -186,8 +224,8 @@ if st.session_state.button_1:  # кнопка нажата
                                   on_change=button_2_on)
         bpf = int(bpf_select)
         # FFT сигнала
-        fft_signal = np.pad(signal, (0, bpf - points), mode='constant')  # дозаполнение отчетов '0'
-        fft_val = np.fft.fft(fft_signal)
+        fft_val = np.fft.fft(signal, bpf)
+        step = round(step / 3.14, 3)
         fft_freq = np.fft.fftfreq(bpf, step)
         indexes = (fft_freq >= 0)  # только неотрицательные частоты
         fft_val = fft_val[indexes]
