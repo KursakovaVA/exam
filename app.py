@@ -1,5 +1,8 @@
+from random import sample
+
 import streamlit as st
 import numpy as np
+import matplotlib.pyplot as plt
 import math
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -41,15 +44,12 @@ def generate_harmonic(frequency, duration, step, shift):
         signal = np.sin(2 * np.pi * frequency * t)
     return t, signal
 
-
 # функция генерации полигармонического сигнала
 def generate_poliharmonic(frequencies, duration, step):
     t = np.arange(0.0, duration + 0.001, step)
     signal = sum(np.sin(2 * np.pi * f * t) for f in frequencies)
     return t, signal
 
-
-# def real_spectrum():
 # основная часть 
 if 'button_1' not in st.session_state:
     st.session_state.button_1 = False
@@ -136,14 +136,18 @@ else:  # cпециальный
         y_tick = 1;
         x_tick = round(moment / 20, 1)
         points = math.floor(moment / step) + 1
-        t, signal = unit_step(0, moment, step)
+        t, signal = unit_step(0, moment + 0.001, step)
     else:
         amplitude = st.selectbox('Амплитуда', ('1000', '2000', '3000', '4000', '5000', '6000', '7000', '8000', '9000', '10000'))
-        moment = st.number_input('Момент скачка 1 <= T <= 20 (c)', min_value=1, max_value=20, value=1, step=1, format="%d")
+        moment = st.selectbox('Момент скачка (c)', ('0,01', '0,1'))
         duration = st.selectbox('Интервал задания сигнала (с)', ('1,2 * T', '10 * T'))
         step = st.number_input('Шаг дискретизации 0,001 ≤ Δt ≤ 2,0 (c)', min_value=0.001, max_value=2.0,
-                               value=0.010,
+                               value=0.001,
                                step=0.001, format="%0.3f")
+        if moment == '0,01' :
+            moment = 0.01
+        else:
+            moment = 0.1
         if duration == '1,2 * T':
             duration = 1.2 * moment
         else:
@@ -151,7 +155,7 @@ else:  # cпециальный
         y_tick = 1000;
         x_tick = round(duration / 20, 1)
         points = math.floor(duration / step) + 1
-        t, signal = delta_function(amplitude, moment, duration, step)
+        t, signal = delta_function(amplitude, moment, duration + 0.001, step)
 
 # формирование сигнала             
 st.button('Выполнить формирование сигнала', on_click=button_1_on)
@@ -195,9 +199,10 @@ if st.session_state.button_1:  # кнопка нажата
                             index=None)
         if spectrum == 'Вещественный':
             y_val = np.real(fft_val)
-        else:  # spectrum == 'Мнимый':
+        elif spectrum == 'Мнимый':
             y_val = np.imag(fft_val)
-        # график спектра
+
+        #график спектра
         if spectrum != None:
             fig_1 = go.Figure()
             fig_1.add_trace(go.Scatter(x=fft_freq, y=y_val, mode='lines'))
@@ -206,4 +211,4 @@ if st.session_state.button_1:  # кнопка нажата
             fig_1.update_xaxes(title_text='Частота (рад/c)', showgrid=True, mirror=True)
             fig_1.update_yaxes(showgrid=True, mirror=True)
             fig_1.show()
-            st.plotly_chart(fig_1) 
+            st.plotly_chart(fig_1)
