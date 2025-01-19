@@ -1,8 +1,5 @@
-from random import sample
-
 import streamlit as st
 import numpy as np
-import matplotlib.pyplot as plt
 import math
 import plotly.graph_objects as go
 import plotly.io as pio
